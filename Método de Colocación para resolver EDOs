@@ -1,0 +1,354 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMtB50mRqQ+04F7mYBH8UXS",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/LuisEduardoRB/EDP-II/blob/main/M%C3%A9todo%20de%20Colocaci%C3%B3n%20para%20resolver%20EDOs\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Método de Colocación\n",
+        "\n",
+        "Queremos aproximar la solución de la ecuación diferencial ordinaria\n",
+        "$$u''(x)+u(x)=x,$$\n",
+        "sujeta a las condiciones iniciales\n",
+        "$$u(0)=0,\\qquad u'(0)=2.$$\n",
+        "\n",
+        "En lugar de resolver la ecuación de manera exacta, construiremos una **aproximación polinómica cúbica**\n",
+        "$$u_N(x)=a_0+a_1x+a_2x^2+a_3x^3,$$\n",
+        "y determinaremos sus coeficientes aplicando el **método de colocación**, una técnica fundamental dentro del marco de los **métodos de residuos ponderados**.\n",
+        "\n",
+        "El procedimiento consiste en:\n",
+        "\n",
+        "1. Incorporar las condiciones iniciales directamente en el polinomio aproximante.\n",
+        "2. Construir el **residuo de la ecuación diferencial**:\n",
+        "   $$\\varepsilon(x)=u_N''(x)+u_N(x)-x.$$\n",
+        "3. Exigir que este residuo se anule en puntos específicos del intervalo, llamados **puntos de colocación**.  \n",
+        "   En este problema utilizaremos:\n",
+        "   $$x=\\tfrac{1}{2},\\qquad x=1.$$\n",
+        "\n",
+        "El resultado es una aproximación que respeta tanto las condiciones iniciales como el comportamiento de la ecuación diferencial en puntos clave del dominio, siguiendo la misma filosofía que se emplea en métodos numéricos para **Ecuaciones Diferenciales Parciales (EDP)**, pero aplicada aquí al caso unidimensional.\n"
+      ],
+      "metadata": {
+        "id": "2pxFNbB0F0dh"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 1: Importación de librerías\n",
+        "\n",
+        "- `import sympy as sp`  \n",
+        "  Importa Sympy, usado para cálculo simbólico: derivadas, resolver ecuaciones, construir residuos, etc.\n",
+        "\n",
+        "- `import numpy as np`  \n",
+        "  Importa Numpy, usado para trabajar con vectores numéricos, mallas y evaluar funciones en muchos puntos a la vez.\n",
+        "\n",
+        "- `import matplotlib.pyplot as plt`  \n",
+        "  Matplotlib, usado para graficar la solución exacta y la aproximación obtenida.\n",
+        "\n",
+        "Estas librerías son exactamente las mismas que se usan cuando se resuelven EDP por métodos aproximados: construir funciones base, evaluar operadores diferenciales y comparar soluciones."
+      ],
+      "metadata": {
+        "id": "DzlVTxdaCOtD"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import sympy as sp\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt"
+      ],
+      "metadata": {
+        "id": "GytLBxX1D1yw"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 2: Variables simbólicas y aproximación polinómica cúbica\n",
+        "\n",
+        "- `x=sp.symbols('x',real=True)`  \n",
+        "  Declara la variable simbólica $x$, la variable independiente de la EDO.\n",
+        "\n",
+        "- `a0,a1,a2,a3=sp.symbols('a0 a1 a2 a3',real=True)`  \n",
+        "  Declara los coeficientes $a_0,a_1,a_2,a_3$ que definen la aproximación. Serán determinados con condiciones iniciales y colocación.\n",
+        "\n",
+        "- `uN=a0+a1*x+a2*x**2+a3*x**3`  \n",
+        "  Define la aproximación cúbica:  \n",
+        "  $$u_N(x)=a_0+a_1x+a_2x^2+a_3x^3.$$\n",
+        "\n",
+        "En EDP esta etapa equivale a elegir un espacio aproximante (funciones base o elementos finitos).\n"
+      ],
+      "metadata": {
+        "id": "wX1ukdpDD6J_"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "x=sp.symbols('x',real=True)\n",
+        "a0,a1,a2,a3=sp.symbols('a0 a1 a2 a3',real=True)\n",
+        "\n",
+        "uN=a0+a1*x+a2*x**2+a3*x**3\n"
+      ],
+      "metadata": {
+        "id": "AX8WxNKKD72i"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 3: Imposición de condiciones iniciales $u(0)=0$, $u'(0)=2$\n",
+        "\n",
+        "- `uN.subs(x,0)`  \n",
+        "  Sustituye $x=0$ en la aproximación para obtener $u_N(0)$.\n",
+        "\n",
+        "- `sp.diff(uN,x)`  \n",
+        "  Calcula la derivada $u_N'(x)$.\n",
+        "\n",
+        "- `sp.diff(uN,x).subs(x,0)`  \n",
+        "  Evalúa $u_N'(0)$.\n",
+        "\n",
+        "- `eq_bc1=sp.Eq(uN.subs(x,0),0)`  \n",
+        "  Forma la ecuación simbólica $u_N(0)=0$.\n",
+        "\n",
+        "- `eq_bc2=sp.Eq(sp.diff(uN,x).subs(x,0),2)`  \n",
+        "  Forma la ecuación simbólica $u_N'(0)=2$.\n",
+        "\n",
+        "- `sp.solve((eq_bc1,eq_bc2),(a0,a1))`  \n",
+        "  Resuelve para $a_0$ y $a_1$.\n",
+        "\n",
+        "- `uN=sp.simplify(uN.subs(sol_bc))`  \n",
+        "  Sustituye dichos valores y simplifica, quedando:  \n",
+        "  $$u_N(x)=2x+a_2x^2+a_3x^3.$$\n",
+        "\n",
+        "En EDP esto representa incorporar condiciones de frontera antes del método numérico.\n"
+      ],
+      "metadata": {
+        "id": "RV8LnmHXD8US"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "eq_bc1=sp.Eq(uN.subs(x,0),0)\n",
+        "eq_bc2=sp.Eq(sp.diff(uN,x).subs(x,0),2)\n",
+        "sol_bc=sp.solve((eq_bc1,eq_bc2),(a0,a1))\n",
+        "uN=sp.simplify(uN.subs(sol_bc))\n",
+        "\n",
+        "print(\"u_N(x) con condiciones iniciales:\")\n",
+        "print(uN)\n"
+      ],
+      "metadata": {
+        "id": "phC3GjmfEbkl"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 4: Residuo de la ecuación diferencial y método de colocación\n",
+        "\n",
+        "- `sp.diff(uN,x,2)`  \n",
+        "  Calcula $u_N''(x)$.\n",
+        "\n",
+        "- `eps=sp.simplify(sp.diff(uN,x,2)+uN-x)`  \n",
+        "  Construye y simplifica el residuo:  \n",
+        "  $$\\varepsilon(x)=u_N''(x)+u_N(x)-x.$$\n",
+        "\n",
+        "- `eq1=sp.Eq(eps.subs(x,sp.Rational(1,2)),0)`  \n",
+        "  Impone la condición de colocación $\\varepsilon(1/2)=0$.\n",
+        "\n",
+        "- `eq2=sp.Eq(eps.subs(x,1),0)`  \n",
+        "  Impone la condición de colocación $\\varepsilon(1)=0$.\n",
+        "\n",
+        "- `sp.solve((eq1,eq2),(a2,a3))`  \n",
+        "  Resuelve para los coeficientes restantes $a_2,a_3$.\n",
+        "\n",
+        "- `uN_final=sp.simplify(uN.subs(sol_a2a3))`  \n",
+        "  Sustituye los coeficientes y obtiene la aproximación final.\n",
+        "\n",
+        "El método de colocación es una versión puntual de los métodos de residuos ponderados usados en EDP (Galerkin, Tau, Petrov-Galerkin, etc.).\n"
+      ],
+      "metadata": {
+        "id": "GIMo5thWEcVM"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "eps=sp.simplify(sp.diff(uN,x,2)+uN-x)\n",
+        "print(\"\\nResiduo ε(x):\")\n",
+        "print(eps)\n",
+        "\n",
+        "eq1=sp.Eq(eps.subs(x,sp.Rational(1,2)),0)\n",
+        "eq2=sp.Eq(eps.subs(x,1),0)\n",
+        "sol_a2a3=sp.solve((eq1,eq2),(a2,a3))\n",
+        "uN_final=sp.simplify(uN.subs(sol_a2a3))\n",
+        "\n",
+        "print(\"\\nSolución (a2,a3):\")\n",
+        "print(sol_a2a3)\n",
+        "print(\"\\nAproximación cúbica final u_N(x):\")\n",
+        "print(uN_final)\n"
+      ],
+      "metadata": {
+        "id": "-yetl_38EiMF"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 5: Solución exacta de la EDO\n",
+        "\n",
+        "- `u=sp.Function('u')`  \n",
+        "  Declara simbólicamente la función $u(x)$.\n",
+        "\n",
+        "- `ode=sp.Eq(sp.diff(u(x),x,2)+u(x),x)`  \n",
+        "  Representa la EDO:  \n",
+        "  $$u''+u=x.$$\n",
+        "\n",
+        "- `sp.dsolve(ode,ics={u(0):0,sp.diff(u(x),x).subs(x,0):2})`  \n",
+        "  Resuelve simbólicamente la ecuación con condiciones iniciales.\n",
+        "\n",
+        "- `u_exact=sp.simplify(sol_exact.rhs)`  \n",
+        "  Extrae la solución explícita y la simplifica.\n",
+        "\n",
+        "Comparar contra la solución exacta permite evaluar la calidad de la aproximación, igual que se hace en validación de métodos para EDP.\n"
+      ],
+      "metadata": {
+        "id": "5ptidnB5EigW"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "u=sp.Function('u')\n",
+        "ode=sp.Eq(sp.diff(u(x),x,2)+u(x),x)\n",
+        "sol_exact=sp.dsolve(ode,ics={u(0):0,sp.diff(u(x),x).subs(x,0):2})\n",
+        "u_exact=sp.simplify(sol_exact.rhs)\n",
+        "\n",
+        "print(\"\\nSolución exacta u(x):\")\n",
+        "print(u_exact)\n"
+      ],
+      "metadata": {
+        "id": "__uAvQUeEkcQ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 6: Versión numérica y cálculo del error\n",
+        "\n",
+        "- `sp.lambdify(x,uN_final,\"numpy\")`  \n",
+        "  Convierte $u_N(x)$ a una función numérica evaluable con Numpy.\n",
+        "\n",
+        "- `np.linspace(0,1,400)`  \n",
+        "  Crea una malla de 400 puntos en $[0,1]$.\n",
+        "\n",
+        "- `y_aprox=uN_num(x_vals)`  \n",
+        "  Evalúa la solución aproximada.\n",
+        "\n",
+        "- `y_exact=u_exact_num(x_vals)`  \n",
+        "  Evalúa la solución exacta.\n",
+        "\n",
+        "- `mse=np.mean((y_aprox-y_exact)**2)`  \n",
+        "  Calcula el error cuadrático medio:  \n",
+        "  $$\\text{MSE}=\\frac{1}{N}\\sum_{i=1}^N(u_N(x_i)-u(x_i))^2.$$\n",
+        "\n",
+        "Este tipo de métricas se usan también en análisis de convergencia en EDP.\n"
+      ],
+      "metadata": {
+        "id": "jJ2iaYl3EkkM"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "uN_num=sp.lambdify(x,uN_final,\"numpy\")\n",
+        "u_exact_num=sp.lambdify(x,u_exact,\"numpy\")\n",
+        "\n",
+        "x_vals=np.linspace(0,1,400)\n",
+        "y_aprox=uN_num(x_vals)\n",
+        "y_exact=u_exact_num(x_vals)\n",
+        "\n",
+        "mse=np.mean((y_aprox-y_exact)**2)\n",
+        "print(\"\\nError cuadrático medio en [0,1]:\",mse)\n"
+      ],
+      "metadata": {
+        "id": "rNc4iR26EoWE"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Bloque 7: Gráfica final\n",
+        "\n",
+        "- `plt.plot(x_vals,y_exact,...)`  \n",
+        "  Grafica la solución exacta $u(x)$.\n",
+        "\n",
+        "- `plt.plot(x_vals,y_aprox,\"--\",...)`  \n",
+        "  Grafica la aproximación cúbica $u_N(x)$.\n",
+        "\n",
+        "- Etiquetas, título y cuadrícula para interpretar la gráfica.\n",
+        "\n",
+        "Visualizar ambas curvas permite ver qué tan bien el método de colocación reproduce la solución real en el intervalo. Este mismo tipo de análisis se hace para métodos numéricos en EDP."
+      ],
+      "metadata": {
+        "id": "V7wEPho2Eofy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "plt.plot(x_vals,y_exact,label=\"u(x) exacta\",linewidth=2)\n",
+        "plt.plot(x_vals,y_aprox,\"--\",label=\"u_N(x) cúbica\",linewidth=2)\n",
+        "plt.xlabel(\"x\")\n",
+        "plt.ylabel(\"u\")\n",
+        "plt.title(\"Colocación para u''+u=x, u(0)=0, u'(0)=2\")\n",
+        "plt.grid(True)\n",
+        "plt.legend()\n",
+        "plt.show()\n"
+      ],
+      "metadata": {
+        "id": "pj549fz2ErDv"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
